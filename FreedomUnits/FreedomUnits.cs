@@ -12,6 +12,9 @@ namespace FreedomUnits
         const float METERS_TO_FEET = 3.280839895f;
         const float FEET_PER_YARD = 3f;
         const float FEET_PER_MILE = 5280f;
+        const float FEET_PER_FOOTBALL_FIELD = 300f;
+
+        static bool extraFreedomMode = false;
 
         void Start()
         {
@@ -20,30 +23,42 @@ namespace FreedomUnits
             new Harmony("Hawkbar.FreedomUnits").PatchAll(Assembly.GetExecutingAssembly());
         }
 
+        public override void Configure(IModConfig config)
+        {
+            extraFreedomMode = ModHelper.Config.GetSettingsValue<bool>("EXTRA FREEDOM MODE");
+        }
+
         [HarmonyPostfix, HarmonyPatch(typeof(CanvasMarker), nameof(CanvasMarker.UpdateDistanceText))]
         static void CanvasMarker_UpdateDistanceText(CanvasMarker __instance)
         {
             if (__instance._stringBuilder == null) return;
             var meters = __instance.GetMarkerDistance();
             var feet = Mathf.Round(meters * METERS_TO_FEET);
-            var yards = Mathf.Round(feet / FEET_PER_YARD);
-            var miles = Mathf.Round(feet / FEET_PER_MILE * 10f) / 10f;
 
             __instance._stringBuilder.Length = 0;
             __instance._stringBuilder.Append(__instance._label);
             __instance._stringBuilder.Append(" ");
-            if (feet < 100f)
+
+            if (extraFreedomMode)
+            {
+                var footballFields = Mathf.Round(feet / FEET_PER_FOOTBALL_FIELD * 10f) / 10f;
+                __instance._stringBuilder.Append(footballFields);
+                __instance._stringBuilder.Append(" football fields");
+            }
+            else if (feet < 100f)
             {
                 __instance._stringBuilder.Append(feet);
                 __instance._stringBuilder.Append("ft");
             }
             else if (feet < FEET_PER_MILE)
             {
+                var yards = Mathf.Round(feet / FEET_PER_YARD);
                 __instance._stringBuilder.Append(yards);
                 __instance._stringBuilder.Append("yd");
             }
             else if (feet < FEET_PER_MILE * 100f)
             {
+                var miles = Mathf.Round(feet / FEET_PER_MILE * 10f) / 10f;
                 __instance._stringBuilder.Append(miles);
                 __instance._stringBuilder.Append("mi");
             }
@@ -87,21 +102,27 @@ namespace FreedomUnits
 
             var meters = (__instance._activeBody.GetWorldCenterOfMass() - __instance._currentReferenceFrame.GetPosition()).magnitude;
             var feet = Mathf.Round(meters * METERS_TO_FEET);
-            var yards = Mathf.Round(feet / FEET_PER_YARD);
-            var miles = Mathf.Round(feet / FEET_PER_MILE * 10f) / 10f;
 
-            if (feet < 100f)
+            if (extraFreedomMode)
+            {
+                var footballFields = Mathf.Round(feet / FEET_PER_FOOTBALL_FIELD * 10f) / 10f;
+                __instance._stringBuilder.Append(footballFields);
+                __instance._stringBuilder.Append(" football fields");
+            }
+            else if (feet < 100f)
             {
                 __instance._stringBuilder.Append(feet);
                 __instance._stringBuilder.Append("ft");
             }
             else if (feet < FEET_PER_MILE)
             {
+                var yards = Mathf.Round(feet / FEET_PER_YARD);
                 __instance._stringBuilder.Append(yards);
                 __instance._stringBuilder.Append("yd");
             }
             else
             {
+                var miles = Mathf.Round(feet / FEET_PER_MILE * 10f) / 10f;
                 __instance._stringBuilder.Append(miles);
                 __instance._stringBuilder.Append("mi");
             }
@@ -113,9 +134,18 @@ namespace FreedomUnits
             var milesPerSecond = feetPerSecond / FEET_PER_MILE;
             var milesPerHour = milesPerSecond * 3600f;
 
-            __instance._stringBuilder.Append(Mathf.Round(milesPerHour));
-            __instance._stringBuilder.Append("mph");
-            
+            if (extraFreedomMode)
+            {
+                var fastballsPerMinute = milesPerSecond / 100f * 60f;
+                __instance._stringBuilder.Append(Mathf.Round(fastballsPerMinute * 100f) / 100f);
+                __instance._stringBuilder.Append(" fastballs per minute");
+            }
+            else
+            {
+                __instance._stringBuilder.Append(Mathf.Round(milesPerHour));
+                __instance._stringBuilder.Append("mph");
+            }
+
             reticuleWithState.SetReadoutText(__instance._stringBuilder.ToString());
             reticuleWithState.SetColorWithoutAlpha(__instance._reticuleColor);
             if (__instance._offScreenIndicator != null)
